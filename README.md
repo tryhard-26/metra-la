@@ -8,7 +8,7 @@ A Deep Learning comparative study benchmarking **Dilated 1D-CNN**, **Temporal Tr
 
 | Real Name | Registration No. | GitHub Profile | Architecture Paradigm | Trainable Params | Status |
 | :--- | :---: | :---: | :--- | :---: | :---: |
-| **Adriteyo Das** | `230953244` | [@raz0rbill26](https://github.com/tryhard-26) | **Temporal Transformer** (Multi-Head Self-Attention + Node Embeddings) | 213,964 | **Completed** |
+| **Adriteyo Das** | `230953244` | [@tryhard-26](https://github.com/tryhard-26) | **Temporal Transformer** (Multi-Head Self-Attention + Node Embeddings) | 213,964 | **Completed** |
 | **Varanasi Naga Akhil** | `230953496` | [@AkCodes23](https://github.com/AkCodes23) | **Spatio-Temporal GNN** (Chebyshev Spectral Graph Conv $K=3$ + Temporal GLU) | 285,836 | **Completed** |
 | **Jayesh Agarwal** | `230953348` | [@itjayesh](https://github.com/itjayesh) | **Dilated 1D-CNN** (Stacked Causal Dilated Convolutions $d \in \{1,2,4,8\}$) | 122,444 | **Completed** |
 | **Mihika Bardhan** | `230953122` | [@mihikabardhan](https://github.com/mihikabardhan) | **Multi-Layer LSTM** (Recurrent Sequence Modeling + LayerNorm) | 213,388 | **Completed** |
