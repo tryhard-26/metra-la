@@ -108,6 +108,30 @@ All 4 models were trained on Apple Silicon Metal Performance Shaders (`mps`) acr
 * **Congestion Shockwave Failure**: Under abrupt deceleration ($\Delta = 66.9\text{ mph}$, speed collapse from $69.4 \to 2.4\text{ mph}$), self-attention models display an intrinsic 15–20 minute phase lag due to reliance on historical autoregressive velocity windows.
 * **Spatial Bottleneck Variance**: Complex highway interchange merge sensors exhibit up to 2.4× higher prediction error compared to mainline straight-segment sensors.
 
+### E. Architectural Ablation Study (Component Contributions Across All 4 Paradigms)
+
+![Architectural Ablation Study](assets/06_ablation_study.png)
+
+#### Master Architectural Ablation Matrix
+
+| Model Family | Member | Ablation Variant | 15m MAE | 30m MAE | 60m MAE | Overall MAE | $\Delta$ MAE | Degradation |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Temporal Transformer** | **Adriteyo Das** | **Full Model (Base)** | **2.79** | **3.17** | **3.55** | **3.12** | **0.00** | **Baseline** |
+| | | w/o Residual Skip Head | 3.84 | 4.55 | 5.56 | 4.54 | +1.42 | +45.5% |
+| | | w/o Spatial Diffusion | 3.97 | 4.96 | 6.37 | 4.95 | +1.83 | +58.8% |
+| | | w/o Positional Encoding | 3.96 | 4.98 | 6.41 | 4.98 | +1.86 | +59.8% |
+| **Spatio-Temporal GNN** | **Varanasi Naga Akhil** | **ChebNet $K=3$ (Base)** | **2.86** | **3.27** | **3.72** | **3.22** | **0.00** | **Baseline** |
+| | | ChebNet $K=1$ (1-Hop) | 3.82 | 4.83 | 6.29 | 4.83 | +1.61 | +50.0% |
+| | | ChebNet $K=2$ (2-Hop) | 3.91 | 4.84 | 6.29 | 4.87 | +1.65 | +51.3% |
+| | | Static Graph Only (w/o Adaptive Graph) | 3.90 | 4.94 | 6.50 | 4.94 | +1.72 | +53.5% |
+| **Dilated 1D-CNN** | **Jayesh Agarwal** | **Dilations $[1,2,4,8]$ (Base)** | **2.88** | **3.31** | **3.79** | **3.26** | **0.00** | **Baseline** |
+| | | No Dilation $[1,1,1,1]$ | 3.68 | 4.61 | 5.84 | 4.58 | +1.32 | +40.6% |
+| | | Shallow Dilation $[1,2,4]$ | 3.85 | 4.72 | 5.87 | 4.66 | +1.40 | +42.9% |
+| | | w/o Adaptive Graph Diffusion | 3.69 | 4.63 | 6.08 | 4.65 | +1.40 | +42.8% |
+| **Multi-Layer LSTM** | **Mihika Bardhan** | **3-Layer + Embeddings (Base)** | **2.86** | **3.30** | **3.82** | **3.26** | **0.00** | **Baseline** |
+| | | 2-Layer w/o Node Embeddings | 4.31 | 5.01 | 6.03 | 5.00 | +1.75 | +53.7% |
+| | | 1-Layer w/o Node Embeddings | 4.34 | 5.20 | 6.26 | 5.16 | +1.90 | +58.3% |
+
 ---
 
 ## 6. Quickstart & Execution Guide
@@ -153,6 +177,12 @@ uv run python src/train.py --model gnn --device mps --epochs 25 --batch-size 64
 uv run python scripts/error_analysis.py --device mps --checkpoint output/run-temporal_transformer-20260826_222415/best_model.pt
 ```
 
+### 6. Run Systematic Architectural Component Ablation Study
+
+```bash
+uv run python scripts/ablation_study.py --device mps
+```
+
 ---
 
 ## 7. Output & Log Architecture
@@ -194,6 +224,7 @@ output/
 ├── assets/                            # Tracked figures for README presentation
 │   ├── 00_model_comparison_benchmark.png
 │   ├── 05_failure_case_analysis.png
+│   ├── 06_ablation_study.png
 │   ├── cnn_loss_curve.png
 │   ├── cnn_predictions.png
 │   ├── lstm_loss_curve.png
@@ -206,7 +237,8 @@ output/
 │   └── eda_temporal_patterns.png
 ├── scripts/
 │   ├── setup.py                       # Dataset download & verification script
-│   └── error_analysis.py              # Diurnal regimes & shockwave failure analysis
+│   ├── error_analysis.py              # Diurnal regimes & shockwave failure analysis
+│   └── ablation_study.py              # Cross-architecture component ablation suite
 ├── src/
 │   ├── dataset.py                     # Sliding window generator, standard scaler, DataLoaders
 │   ├── metrics.py                     # Masked MAE, RMSE, MAPE, R2 metrics
