@@ -100,6 +100,14 @@ All 4 models were trained on Apple Silicon Metal Performance Shaders (`mps`) acr
 | **Multi-Layer LSTM Predictions** | **Spatio-Temporal GNN Predictions** |
 | ![LSTM Predictions](assets/lstm_predictions.png) | ![GNN Predictions](assets/gnn_predictions.png) |
 
+### D. Failure Case & Diurnal Error Breakdown (Temporal Transformer)
+
+![Failure Case Analysis](assets/05_failure_case_analysis.png)
+
+* **Diurnal Regime Dynamics**: Morning Peak (07:00–09:00, MAE 3.64 mph), Evening Rush (16:30–18:30, MAE 4.51 mph), and Night Free-Flow (22:00–05:00, MAE 2.41 mph).
+* **Congestion Shockwave Failure**: Under abrupt deceleration ($\Delta = 66.9\text{ mph}$, speed collapse from $69.4 \to 2.4\text{ mph}$), self-attention models display an intrinsic 15–20 minute phase lag due to reliance on historical autoregressive velocity windows.
+* **Spatial Bottleneck Variance**: Complex highway interchange merge sensors exhibit up to 2.4× higher prediction error compared to mainline straight-segment sensors.
+
 ---
 
 ## 6. Quickstart & Execution Guide
@@ -137,6 +145,12 @@ uv run python src/train.py --model lstm --device mps --epochs 25 --batch-size 64
 
 # 4. Spatio-Temporal GNN (Varanasi Naga Akhil)
 uv run python src/train.py --model gnn --device mps --epochs 25 --batch-size 64
+```
+
+### 5. Run In-Depth Failure Case & Error Analysis
+
+```bash
+uv run python scripts/error_analysis.py --device mps --checkpoint output/run-temporal_transformer-20260826_222415/best_model.pt
 ```
 
 ---
@@ -179,6 +193,7 @@ output/
 ├── AGENTS.md                          # Architecture guidelines and coding standards
 ├── assets/                            # Tracked figures for README presentation
 │   ├── 00_model_comparison_benchmark.png
+│   ├── 05_failure_case_analysis.png
 │   ├── cnn_loss_curve.png
 │   ├── cnn_predictions.png
 │   ├── lstm_loss_curve.png
@@ -190,7 +205,8 @@ output/
 │   ├── eda_spatial_network.png
 │   └── eda_temporal_patterns.png
 ├── scripts/
-│   └── setup.py                       # Dataset download & verification script
+│   ├── setup.py                       # Dataset download & verification script
+│   └── error_analysis.py              # Diurnal regimes & shockwave failure analysis
 ├── src/
 │   ├── dataset.py                     # Sliding window generator, standard scaler, DataLoaders
 │   ├── metrics.py                     # Masked MAE, RMSE, MAPE, R2 metrics
