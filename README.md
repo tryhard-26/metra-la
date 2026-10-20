@@ -8,9 +8,9 @@ A Deep Learning comparative study benchmarking **Dilated 1D-CNN**, **Temporal Tr
 
 | Real Name | Registration No. | GitHub Profile | Architecture Paradigm | Trainable Params | Status |
 | :--- | :---: | :---: | :--- | :---: | :---: |
-| **Adriteyo Das** | `230953244` | [@tryhard-26](https://github.com/tryhard-26) | **Temporal Transformer** (Multi-Head Self-Attention + Node Embeddings) | 213,964 | **Completed** |
-| **Varanasi Naga Akhil** | `230953496` | [@AkCodes23](https://github.com/AkCodes23) | **Spatio-Temporal GNN** (Chebyshev Spectral Graph Conv $K=3$ + Temporal GLU) | 285,836 | **Completed** |
-| **Jayesh Agarwal** | `230953348` | [@itjayesh](https://github.com/itjayesh) | **Dilated 1D-CNN** (Stacked Causal Dilated Convolutions $d \in \{1,2,4,8\}$) | 122,444 | **Completed** |
+| **Adriteyo Das** | `230953244` | [@tryhard-26](https://github.com/tryhard-26) | **Temporal Transformer** (Multi-Head Self-Attention + Node Embeddings) | 246,701 | **Completed** |
+| **Varanasi Naga Akhil** | `230953496` | [@AkCodes23](https://github.com/AkCodes23) | **Spatio-Temporal GNN** (Chebyshev Spectral Graph Conv $K=3$ + Temporal GLU) | 304,941 | **Completed** |
+| **Jayesh Agarwal** | `230953348` | [@itjayesh](https://github.com/itjayesh) | **Dilated 1D-CNN** (Stacked Causal Dilated Convolutions $d \in \{1,2,4,8\}$) | 150,061 | **Completed** |
 | **Mihika Bardhan** | `230953122` | [@mihikabardhan](https://github.com/mihikabardhan) | **Multi-Layer LSTM** (Recurrent Sequence Modeling + LayerNorm) | 213,388 | **Completed** |
 
 ---
@@ -41,23 +41,22 @@ All 4 models were trained on Apple Silicon Metal Performance Shaders (`mps`) acr
 
 | Model Architecture | Member | Horizon | Masked MAE (mph) | Masked RMSE (mph) | Masked MAPE (%) | $R^2$ Score |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: |
-| **Dilated 1D-CNN** | **Jayesh Agarwal** | 15 min (H3) | **2.86** | 5.63 | 7.74% | 0.8297 |
-| | | 30 min (H6) | **3.30** | 6.78 | 9.58% | 0.7534 |
-| | | 60 min (H12) | **3.80** | 8.00 | 11.55% | 0.6568 |
-| | | **Overall Average** | **3.26** | **6.72** | **9.39%** | **0.7576** |
-| **Multi-Layer LSTM** | **Mihika Bardhan** | 15 min (H3) | **2.86** | 5.65 | **7.61%** | 0.8287 |
-| | | 30 min (H6) | **3.30** | 6.78 | **9.38%** | 0.7533 |
-| | | 60 min (H12) | **3.82** | 8.00 | 11.44% | 0.6564 |
+| **Temporal Transformer** | **Adriteyo Das** | 15 min (H3) | **2.79** | **5.38** | **7.35%** | **0.8447** |
+| | | 30 min (H6) | **3.17** | **6.40** | **8.85%** | **0.7802** |
+| | | 60 min (H12) | **3.55** | **7.36** | **10.45%** | **0.7090** |
+| | | **Overall Average** | **3.12** | **6.31** | **8.69%** | **0.7865** |
+| **Spatio-Temporal GNN** | **Varanasi Naga Akhil** | 15 min (H3) | 2.86 | 5.50 | 7.65% | 0.8377 |
+| *(Dual-Graph STGCN)* | | 30 min (H6) | 3.27 | 6.54 | 9.25% | 0.7706 |
+| | | 60 min (H12) | 3.72 | 7.53 | 11.01% | 0.6955 |
+| | | **Overall Average** | **3.22** | **6.45** | **9.07%** | **0.7771** |
+| **Dilated 1D-CNN** | **Jayesh Agarwal** | 15 min (H3) | 2.88 | 5.57 | 7.65% | 0.8339 |
+| *(Adaptive Graph WaveNet)* | | 30 min (H6) | 3.31 | 6.61 | 9.34% | 0.7656 |
+| | | 60 min (H12) | 3.79 | 7.66 | 11.18% | 0.6849 |
+| | | **Overall Average** | **3.26** | **6.52** | **9.14%** | **0.7718** |
+| **Multi-Layer LSTM** | **Mihika Bardhan** | 15 min (H3) | 2.86 | 5.65 | 7.61% | 0.8287 |
+| *(Recurrent Sequence Modeling)* | | 30 min (H6) | 3.30 | 6.78 | 9.38% | 0.7533 |
+| | | 60 min (H12) | 3.82 | 8.00 | 11.44% | 0.6564 |
 | | | **Overall Average** | **3.26** | **6.73** | **9.22%** | **0.7573** |
-| **Temporal Transformer** | **Adriteyo Das** | 15 min (H3) | **2.87** | 5.69 | 7.63% | 0.8262 |
-| | | 30 min (H6) | **3.30** | 6.85 | 9.39% | 0.7480 |
-| | | 60 min (H12) | **3.79** | 8.02 | **11.28%** | 0.6553 |
-| | | **Overall Average** | **3.26** | **6.78** | **9.22%** | **0.7534** |
-| **Spatio-Temporal GNN** | **Varanasi Naga Akhil** | 15 min (H3) | **2.86** | **5.56** | 7.67% | **0.8344** |
-| | | 30 min (H6) | **3.30** | **6.63** | 9.45% | **0.7640** |
-| | | 60 min (H12) | **3.84** | **7.82** | 11.52% | **0.6718** |
-| | | **Overall Average** | **3.26** | **6.58** | **9.29%** | **0.7675** |
-
 ---
 
 ## 4. Literature Comparison on METR-LA
@@ -69,15 +68,14 @@ All 4 models were trained on Apple Silicon Metal Performance Shaders (`mps`) acr
 | | **Vector Auto-Regression (VAR)** | 4.42 | 5.41 | 6.52 | Linear cross-sensor |
 | | **Feed-Forward Net (FNN)** | 3.99 | 4.23 | 4.49 | Fully connected |
 | **Recurrent Baseline** | **FC-LSTM (Seq2Seq)** | 3.44 | 3.77 | 4.37 | Recurrent state memory |
-| **Our Implementations** | **Dilated 1D-CNN (Ours)** | **2.86** | **3.30** | **3.80** | **Dilated Causal Convolutions + Node Embeddings** |
-| | **Multi-Layer LSTM (Ours)** | **2.86** | **3.30** | **3.82** | **Multi-Layer LSTM + Node Embeddings** |
-| | **Temporal Transformer (Ours)** | **2.87** | **3.30** | **3.79** | **Multi-Head Self-Attention + Node Embeddings** |
-| | **Spatio-Temporal GNN (Ours)** | **2.86** | **3.30** | **3.84** | **Chebyshev Spectral Graph Convolutions ($K=3$)** |
+| **Our Architectures** | **Temporal Transformer (Ours)** | **2.79** | **3.17** | **3.55** | **Spatial-Temporal Dual Attention + Residual Velocity** |
+| | **Spatio-Temporal GNN (Ours)** | **2.86** | **3.27** | **3.72** | **Dual-Graph STGCN (ChebNet $K=3$ + Dynamic Adaptive Graph)** |
+| | **Dilated 1D-CNN (Ours)** | **2.88** | **3.31** | **3.79** | **Graph WaveNet (Adaptive Graph Diffusion + Dilated Causal Conv)** |
+| | **Multi-Layer LSTM (Ours)** | **2.86** | **3.30** | **3.82** | **Multi-Layer LSTM Sequence Modeling + LayerNorm** |
 | **Published SOTA GNNs** | **DCRNN (ICLR 2018)** | 2.77 | 3.15 | 3.60 | Diffusion Graph Conv + GRU |
 | | **Graph WaveNet (IJCAI 2019)** | 2.69 | 3.07 | 3.53 | Adaptive Graph Conv + Dilated Conv |
 | | **STGCN (IJCAI 2018)** | 2.64 | 3.01 | 3.47 | Spectral Graph Conv + Gated Conv |
 | | **GMAN (AAAI 2020)** | 2.77 | 3.07 | 3.40 | Spatial-Temporal Self-Attention |
-
 ---
 
 ## 5. Visualizations Gallery
@@ -101,6 +99,14 @@ All 4 models were trained on Apple Silicon Metal Performance Shaders (`mps`) acr
 | ![CNN Predictions](assets/cnn_predictions.png) | ![Transformer Predictions](assets/transformer_predictions.png) |
 | **Multi-Layer LSTM Predictions** | **Spatio-Temporal GNN Predictions** |
 | ![LSTM Predictions](assets/lstm_predictions.png) | ![GNN Predictions](assets/gnn_predictions.png) |
+
+### D. Failure Case & Diurnal Error Breakdown (Temporal Transformer)
+
+![Failure Case Analysis](assets/05_failure_case_analysis.png)
+
+* **Diurnal Regime Dynamics**: Morning Peak (07:00–09:00, MAE 3.64 mph), Evening Rush (16:30–18:30, MAE 4.51 mph), and Night Free-Flow (22:00–05:00, MAE 2.41 mph).
+* **Congestion Shockwave Failure**: Under abrupt deceleration ($\Delta = 66.9\text{ mph}$, speed collapse from $69.4 \to 2.4\text{ mph}$), self-attention models display an intrinsic 15–20 minute phase lag due to reliance on historical autoregressive velocity windows.
+* **Spatial Bottleneck Variance**: Complex highway interchange merge sensors exhibit up to 2.4× higher prediction error compared to mainline straight-segment sensors.
 
 ---
 
@@ -139,6 +145,12 @@ uv run python src/train.py --model lstm --device mps --epochs 25 --batch-size 64
 
 # 4. Spatio-Temporal GNN (Varanasi Naga Akhil)
 uv run python src/train.py --model gnn --device mps --epochs 25 --batch-size 64
+```
+
+### 5. Run In-Depth Failure Case & Error Analysis
+
+```bash
+uv run python scripts/error_analysis.py --device mps --checkpoint output/run-temporal_transformer-20260826_222415/best_model.pt
 ```
 
 ---
@@ -181,6 +193,7 @@ output/
 ├── AGENTS.md                          # Architecture guidelines and coding standards
 ├── assets/                            # Tracked figures for README presentation
 │   ├── 00_model_comparison_benchmark.png
+│   ├── 05_failure_case_analysis.png
 │   ├── cnn_loss_curve.png
 │   ├── cnn_predictions.png
 │   ├── lstm_loss_curve.png
@@ -192,7 +205,8 @@ output/
 │   ├── eda_spatial_network.png
 │   └── eda_temporal_patterns.png
 ├── scripts/
-│   └── setup.py                       # Dataset download & verification script
+│   ├── setup.py                       # Dataset download & verification script
+│   └── error_analysis.py              # Diurnal regimes & shockwave failure analysis
 ├── src/
 │   ├── dataset.py                     # Sliding window generator, standard scaler, DataLoaders
 │   ├── metrics.py                     # Masked MAE, RMSE, MAPE, R2 metrics

@@ -4,6 +4,10 @@ from typing import Optional
 
 
 class MultiLayerLSTM(nn.Module):
+    """
+    Multi-Layer LSTM with Spatial Node Embeddings and Layer Normalization.
+    Maps historical sequence observation window to future multi-step traffic velocity horizon.
+    """
     def __init__(
         self,
         num_nodes: int = 207,
