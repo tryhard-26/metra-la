@@ -46,26 +46,31 @@ class AdaptiveGraphConv(nn.Module):
 
 
 class DilatedGraphResidualBlock(nn.Module):
-    def __init__(self, channels: int, kernel_size: int = 2, dilation: int = 1, dropout: float = 0.1):
+    def __init__(self, channels: int, kernel_size: int = 2, dilation: int = 1, dropout: float = 0.1, use_adaptive_graph: bool = True):
         super().__init__()
+        self.use_adaptive_graph = use_adaptive_graph
         self.filter_conv = CausalConv1d(channels, channels, kernel_size, dilation)
         self.gate_conv = CausalConv1d(channels, channels, kernel_size, dilation)
-        self.gconv = AdaptiveGraphConv(channels)
+        if use_adaptive_graph:
+            self.gconv = AdaptiveGraphConv(channels)
         self.proj = nn.Conv2d(channels, channels, kernel_size=1)
         self.skip_conv = nn.Conv2d(channels, channels, kernel_size=1)
         self.dropout = nn.Dropout(dropout)
         self.norm = nn.BatchNorm2d(channels)
 
-    def forward(self, x: torch.Tensor, adj_adp: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, x: torch.Tensor, adj_adp: Optional[torch.Tensor] = None) -> tuple[torch.Tensor, torch.Tensor]:
         # x: (B, C, N, T)
         filter_out = torch.tanh(self.filter_conv(x))
         gate_out = torch.sigmoid(self.gate_conv(x))
         gated = filter_out * gate_out
         gated = self.dropout(gated)
 
-        # Spatial adaptive graph convolution
-        gconv_out = self.gconv(gated, adj_adp)
-        fused = gated + gconv_out
+        # Spatial adaptive graph convolution (optional)
+        if self.use_adaptive_graph and adj_adp is not None:
+            gconv_out = self.gconv(gated, adj_adp)
+            fused = gated + gconv_out
+        else:
+            fused = gated
 
         # Skip connection to output head
         skip = self.skip_conv(fused)
@@ -93,6 +98,8 @@ class Dilated1DCNN(nn.Module):
         kernel_size: int = 2,
         dilations: List[int] = [1, 2, 4, 8],
         dropout: float = 0.1,
+        use_adaptive_graph: bool = True,
+        use_residual_head: bool = True,
         **kwargs
     ):
         super().__init__()
@@ -100,15 +107,24 @@ class Dilated1DCNN(nn.Module):
         self.in_steps = in_steps
         self.out_steps = out_steps
         self.channels = channels
+        self.use_adaptive_graph = use_adaptive_graph
+        self.use_residual_head = use_residual_head
 
         # Adaptive Node Embeddings for Dynamic Spatial Graph Learning
-        self.node_vec1 = nn.Parameter(torch.randn(num_nodes, node_dim))
-        self.node_vec2 = nn.Parameter(torch.randn(num_nodes, node_dim))
+        if use_adaptive_graph:
+            self.node_vec1 = nn.Parameter(torch.randn(num_nodes, node_dim))
+            self.node_vec2 = nn.Parameter(torch.randn(num_nodes, node_dim))
 
         self.input_proj = nn.Conv2d(in_features, channels, kernel_size=1)
 
         self.blocks = nn.ModuleList([
-            DilatedGraphResidualBlock(channels=channels, kernel_size=kernel_size, dilation=d, dropout=dropout)
+            DilatedGraphResidualBlock(
+                channels=channels,
+                kernel_size=kernel_size,
+                dilation=d,
+                dropout=dropout,
+                use_adaptive_graph=use_adaptive_graph
+            )
             for d in dilations
         ])
 
@@ -131,7 +147,10 @@ class Dilated1DCNN(nn.Module):
         last_speed = x[:, -1, :, 0]
 
         # Construct dynamic adaptive adjacency matrix: (N, N)
-        adj_adp = F.softmax(F.relu(torch.mm(self.node_vec1, self.node_vec2.t())), dim=-1)
+        if self.use_adaptive_graph:
+            adj_adp = F.softmax(F.relu(torch.mm(self.node_vec1, self.node_vec2.t())), dim=-1)
+        else:
+            adj_adp = None
 
         # Reshape to (B, in_features, num_nodes, in_steps)
         h = x.permute(0, 3, 2, 1).contiguous()
@@ -147,5 +166,8 @@ class Dilated1DCNN(nn.Module):
         delta = self.head(skip_total).squeeze(-1)
 
         # Residual forecasting: Base velocity + Predicted delta
-        out = last_speed.unsqueeze(1) * self.residual_scale + delta # (B, out_steps, N)
+        if self.use_residual_head:
+            out = last_speed.unsqueeze(1) * self.residual_scale + delta # (B, out_steps, N)
+        else:
+            out = delta
         return out
