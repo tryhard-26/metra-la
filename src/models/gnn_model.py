@@ -101,17 +101,19 @@ class TemporalGatedConv(nn.Module):
 
 
 class STConvBlock(nn.Module):
-    def __init__(self, in_channels: int, hidden_channels: int, out_channels: int, k: int = 3, dropout: float = 0.1):
+    def __init__(self, in_channels: int, hidden_channels: int, out_channels: int, k: int = 3, dropout: float = 0.1, use_adaptive_graph: bool = True):
         super().__init__()
+        self.use_adaptive_graph = use_adaptive_graph
         self.tconv1 = TemporalGatedConv(in_channels, hidden_channels, kernel_size=3)
         self.gconv = ChebGraphConv(hidden_channels, hidden_channels, k=k)
-        self.adp_gconv = AdaptiveGraphConv(hidden_channels, hidden_channels)
+        if use_adaptive_graph:
+            self.adp_gconv = AdaptiveGraphConv(hidden_channels, hidden_channels)
         self.tconv2 = TemporalGatedConv(hidden_channels, out_channels, kernel_size=3)
         self.norm = nn.LayerNorm(out_channels)
         self.dropout = nn.Dropout(dropout)
         self.residual = nn.Conv2d(in_channels, out_channels, kernel_size=1) if in_channels != out_channels else nn.Identity()
 
-    def forward(self, x: torch.Tensor, cheb_polys: List[torch.Tensor], adj_adp: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, cheb_polys: List[torch.Tensor], adj_adp: Optional[torch.Tensor] = None) -> torch.Tensor:
         # x: (B, T, N, C)
         B, T, N, C = x.shape
         res = self.residual(x.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
@@ -121,10 +123,13 @@ class STConvBlock(nn.Module):
         h = self.tconv1(h)
         h = h.permute(0, 2, 3, 1)
 
-        # 2. Dual Spatial Graph Conv (Physical ChebNet + Adaptive Dynamic Graph)
+        # 2. Dual Spatial Graph Conv (Physical ChebNet + optional Adaptive Dynamic Graph)
         g_phys = self.gconv(h, cheb_polys)
-        g_adp = self.adp_gconv(h, adj_adp)
-        h = F.relu(g_phys + g_adp)
+        if self.use_adaptive_graph and adj_adp is not None:
+            g_adp = self.adp_gconv(h, adj_adp)
+            h = F.relu(g_phys + g_adp)
+        else:
+            h = F.relu(g_phys)
         h = self.dropout(h)
 
         # 3. Temporal Conv 2
@@ -155,6 +160,8 @@ class SpatioTemporalGNN(nn.Module):
         num_blocks: int = 2,
         dropout: float = 0.1,
         adj_matrix: Optional[np.ndarray] = None,
+        use_adaptive_graph: bool = True,
+        use_residual_head: bool = True,
         **kwargs
     ):
         super().__init__()
@@ -162,6 +169,8 @@ class SpatioTemporalGNN(nn.Module):
         self.in_steps = in_steps
         self.out_steps = out_steps
         self.k = k
+        self.use_adaptive_graph = use_adaptive_graph
+        self.use_residual_head = use_residual_head
 
         # Load or calculate Chebyshev polynomials
         if adj_matrix is None:
@@ -181,8 +190,9 @@ class SpatioTemporalGNN(nn.Module):
             self.register_buffer(f"cheb_poly_{i}", p)
 
         # Adaptive Node Embeddings for Dynamic Spatial Interactions
-        self.node_vec1 = nn.Parameter(torch.randn(num_nodes, node_dim))
-        self.node_vec2 = nn.Parameter(torch.randn(num_nodes, node_dim))
+        if use_adaptive_graph:
+            self.node_vec1 = nn.Parameter(torch.randn(num_nodes, node_dim))
+            self.node_vec2 = nn.Parameter(torch.randn(num_nodes, node_dim))
 
         self.input_proj = nn.Linear(in_features, hidden_channels)
 
@@ -192,7 +202,8 @@ class SpatioTemporalGNN(nn.Module):
                 hidden_channels=hidden_channels,
                 out_channels=hidden_channels,
                 k=k,
-                dropout=dropout
+                dropout=dropout,
+                use_adaptive_graph=use_adaptive_graph
             )
             for _ in range(num_blocks)
         ])
@@ -217,7 +228,10 @@ class SpatioTemporalGNN(nn.Module):
         last_speed = x[:, -1, :, 0]
 
         # Construct adaptive adjacency matrix: (N, N)
-        adj_adp = F.softmax(F.relu(torch.mm(self.node_vec1, self.node_vec2.t())), dim=-1)
+        if self.use_adaptive_graph:
+            adj_adp = F.softmax(F.relu(torch.mm(self.node_vec1, self.node_vec2.t())), dim=-1)
+        else:
+            adj_adp = None
 
         h = self.input_proj(x) # (B, T, N, hidden_channels)
         cheb_polys = self.get_cheb_polys()
@@ -232,7 +246,10 @@ class SpatioTemporalGNN(nn.Module):
         delta = self.head(h)
 
         # Residual forecasting: Base velocity + Predicted delta
-        out = last_speed.unsqueeze(-1) * self.residual_scale + delta # (B, N, out_steps)
+        if self.use_residual_head:
+            out = last_speed.unsqueeze(-1) * self.residual_scale + delta # (B, N, out_steps)
+        else:
+            out = delta
 
         # Reshape to (B, out_steps, num_nodes)
         out = out.permute(0, 2, 1).contiguous()
