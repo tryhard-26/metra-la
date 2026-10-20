@@ -49,15 +49,17 @@ class SpatialAttentionDiffusion(nn.Module):
 
 
 class SpatialTemporalTransformerBlock(nn.Module):
-    def __init__(self, num_nodes: int, d_model: int, nhead: int, d_ff: int, dropout: float = 0.1):
+    def __init__(self, num_nodes: int, d_model: int, nhead: int, d_ff: int, dropout: float = 0.1, use_spatial_diffusion: bool = True):
         super().__init__()
+        self.use_spatial_diffusion = use_spatial_diffusion
         # 1. Temporal Multi-Head Attention (over T_in = 12)
         self.temporal_attn = nn.MultiheadAttention(embed_dim=d_model, num_heads=nhead, dropout=dropout, batch_first=True)
         self.norm_t = nn.LayerNorm(d_model)
         self.dropout_t = nn.Dropout(dropout)
 
         # 2. Fast Spatial Attention Diffusion (over N = 207)
-        self.spatial_diffusion = SpatialAttentionDiffusion(num_nodes=num_nodes, d_model=d_model, dropout=dropout)
+        if use_spatial_diffusion:
+            self.spatial_diffusion = SpatialAttentionDiffusion(num_nodes=num_nodes, d_model=d_model, dropout=dropout)
 
         # 3. Position-Wise Feed Forward Network
         self.ffn = nn.Sequential(
@@ -80,8 +82,9 @@ class SpatialTemporalTransformerBlock(nn.Module):
         h_t = h_t + self.dropout_t(attn_out)
         x = h_t.view(B, N, T, D).permute(0, 2, 1, 3).contiguous() # (B, T, N, D)
 
-        # Fast Spatial Attention Diffusion across highway sensors
-        x = self.spatial_diffusion(x)
+        # Fast Spatial Attention Diffusion across highway sensors (optional)
+        if self.use_spatial_diffusion:
+            x = self.spatial_diffusion(x)
 
         # FFN
         x = self.norm_ffn(x + self.ffn(x))
@@ -105,6 +108,9 @@ class TemporalTransformer(nn.Module):
         num_layers: int = 3,
         d_ff: int = 128,
         dropout: float = 0.1,
+        use_spatial_diffusion: bool = True,
+        use_pos_encoding: bool = True,
+        use_residual_head: bool = True,
         **kwargs
     ):
         super().__init__()
@@ -112,6 +118,9 @@ class TemporalTransformer(nn.Module):
         self.in_steps = in_steps
         self.out_steps = out_steps
         self.d_model = d_model
+        self.use_spatial_diffusion = use_spatial_diffusion
+        self.use_pos_encoding = use_pos_encoding
+        self.use_residual_head = use_residual_head
 
         self.input_proj = nn.Linear(in_features, d_model)
         
@@ -120,7 +129,8 @@ class TemporalTransformer(nn.Module):
         nn.init.xavier_uniform_(self.node_embedding)
 
         # Continuous Temporal Positional Encoding
-        self.pos_encoder = PositionalEncoding(d_model=d_model, max_len=in_steps + 10)
+        if use_pos_encoding:
+            self.pos_encoder = PositionalEncoding(d_model=d_model, max_len=in_steps + 10)
 
         # Stacked Spatial-Temporal Attention Blocks
         self.blocks = nn.ModuleList([
@@ -129,7 +139,8 @@ class TemporalTransformer(nn.Module):
                 d_model=d_model,
                 nhead=nhead,
                 d_ff=d_ff,
-                dropout=dropout
+                dropout=dropout,
+                use_spatial_diffusion=use_spatial_diffusion
             )
             for _ in range(num_layers)
         ])
@@ -161,9 +172,10 @@ class TemporalTransformer(nn.Module):
         h = h + self.node_embedding.view(1, 1, N, self.d_model)
 
         # Add temporal positional encodings
-        h_t = h.permute(0, 2, 1, 3).contiguous().view(B * N, T, self.d_model)
-        h_t = self.pos_encoder(h_t)
-        h = h_t.view(B, N, T, self.d_model).permute(0, 2, 1, 3).contiguous() # (B, T, N, d_model)
+        if self.use_pos_encoding:
+            h_t = h.permute(0, 2, 1, 3).contiguous().view(B * N, T, self.d_model)
+            h_t = self.pos_encoder(h_t)
+            h = h_t.view(B, N, T, self.d_model).permute(0, 2, 1, 3).contiguous() # (B, T, N, d_model)
 
         # Pass through Spatial-Temporal Transformer blocks
         for block in self.blocks:
@@ -178,7 +190,10 @@ class TemporalTransformer(nn.Module):
         delta = self.head(h)
 
         # Residual forecasting: Base velocity + Predicted delta
-        out = last_speed.unsqueeze(-1) * self.residual_scale + delta
+        if self.use_residual_head:
+            out = last_speed.unsqueeze(-1) * self.residual_scale + delta
+        else:
+            out = delta
 
         # Output shape: (B, out_steps, num_nodes)
         out = out.permute(0, 2, 1).contiguous()
